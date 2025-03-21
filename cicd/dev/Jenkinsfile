@@ -1,0 +1,57 @@
+pipeline {
+    agent any
+    
+    environment {
+        ENV = 'dev'
+        NODE_VERSION = '14'
+        APP_NAME = 'my-react-app'
+        BUILD_DIR = 'build'
+        DEPLOY_DIR = '/path/${ENV}/mfa/apps/${APP_NAME}'
+    }
+    
+    stages {
+        stage('Prepare') {
+            steps {
+                echo 'Preparing build environment...'
+                nodejs(nodeJSInstallationName: "node${NODE_VERSION}") {
+                    sh 'node --version'
+                    sh 'npm --version'
+                }
+            }
+        }
+        
+        stage('Build') {
+            steps {
+                echo 'Building React app...'
+                nodejs(nodeJSInstallationName: "node${NODE_VERSION}") {
+                    sh 'npm ci'
+                    sh 'npm run build'
+                }
+            }
+        }
+        
+        stage('Deploy to MFA') {
+            steps {
+                echo 'Deploying to MFA structure...'
+                sh "mkdir -p ${DEPLOY_DIR}"
+                sh "cp -R ${BUILD_DIR}/* ${DEPLOY_DIR}"
+            }
+        }
+        
+        stage('Cleanup') {
+            steps {
+                echo 'Cleaning up...'
+                sh "rm -rf ${BUILD_DIR}"
+            }
+        }
+    }
+    
+    post {
+        success {
+            echo 'Build and deployment successful!'
+        }
+        failure {
+            echo 'Build or deployment failed.'
+        }
+    }
+}
