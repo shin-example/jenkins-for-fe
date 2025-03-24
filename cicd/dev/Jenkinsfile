@@ -1,32 +1,36 @@
 pipeline {
-    agent any
+    parameters {
+        string(name: 'NODE_VERSION', defaultValue: '20.4.0', description: 'Node.js version to use')
+    }
+
+    agent {
+        docker {
+            image "node:${params.NODE_VERSION}" // Use a Docker image that matches the specified Node.js version
+            args '-u root:root' // Optional: run as root user if needed
+        }
+    }
     
     environment {
         ENV = 'dev'
-        NODE_VERSION = '14'
         APP_NAME = 'my-react-app'
         BUILD_DIR = 'build'
-        DEPLOY_DIR = '/path/${ENV}/mfa/apps/${APP_NAME}'
+        DEPLOY_DIR = "/path/${ENV}/mfa/apps/${APP_NAME}"
     }
     
     stages {
         stage('Prepare') {
             steps {
                 echo 'Preparing build environment...'
-                nodejs(nodeJSInstallationName: "node${NODE_VERSION}") {
-                    sh 'node --version'
-                    sh 'npm --version'
-                }
+                sh 'node --version'
+                sh 'npm --version'
             }
         }
         
         stage('Build') {
             steps {
                 echo 'Building React app...'
-                nodejs(nodeJSInstallationName: "node${NODE_VERSION}") {
-                    sh 'npm ci'
-                    sh 'npm run build'
-                }
+                sh 'npm ci'
+                sh 'npm run build'
             }
         }
         
