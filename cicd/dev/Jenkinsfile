@@ -38,12 +38,12 @@ pipeline {
             }
         }
         
-        stage('Cleanup') {
-            steps {
-                echo 'Cleaning up...'
-                sh "rm -rf ${BUILD_DIR}"
-            }
-        }
+        // stage('Cleanup') {
+        //     steps {
+        //         echo 'Cleaning up...'
+        //         sh "rm -rf ${BUILD_DIR}"
+        //     }
+        // }
     }
     
     post {
