@@ -16,8 +16,7 @@ pipeline {
 
         // 프로젝트 관련 변수
         REPOSITORY          = "/shiftone-internal/jenkins-build-test"
-        // IMAGE_TAG           = "abcdefghijk".substring(0, 7)
-        IMAGE_TAG           = "${env.GIT_COMMIT.substring(0, 7)}"
+        IMAGE_TAG           = "${env.GIT_COMMIT}"
         DOCKERFILE_PATH     = "${WORKSPACE}/Dockerfile"
 
         // ArgoCD 배포 관련 변수
