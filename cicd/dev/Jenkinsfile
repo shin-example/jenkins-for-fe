@@ -1,60 +1,57 @@
+@Library('shared-lib-for-test') _
+
+def builds = new buildScript()
+
 pipeline {
-    parameters {
-        string(name: 'NODE_VERSION', defaultValue: '20.4.0', description: 'Node.js version to use')
+    agent none
+
+    environment {
+        // 공통 환경 변수 정의
+        REGISTRY_HOST       = "${env.INSTANCE_REGISTRY_HOST}"
+        REGISTRY_USER       = "${env.INSTANCE_REGISTRY_USER}"
+        REGISTRY_PASSWORD   = "${env.INSTANCE_REGISTRY_PASSWORD}"
+        GIT_USERNAME        = "${env.INSTANCE_GITLAB_USERNAME}"
+        GIT_PASSWORD        = "${env.INSTANCE_GITLAB_TOKEN}"
+        ARGOCD_SERVER       = "${env.INSTANCE_ARGOCD_SERVER}"
+        ARGOCD_USERNAME     = "${env.INSTANCE_ARGOCD_USERNAME}"
+        ARGOCD_PASSWORD     = "${env.INSTANCE_ARGOCD_PASSWORD}"
+
+        // 프로젝트 관련 변수
+        REPOSITORY          = "/shiftone-internal/jenkins-build-test"
+        // IMAGE_TAG           = "abcdefghijk".substring(0, 7)
+        IMAGE_TAG           = "${env.GIT_COMMIT.substring(0, 7)}"
+        DOCKERFILE_PATH     = "${WORKSPACE}/Dockerfile"
+
+        // ArgoCD 배포 관련 변수
+        APP_NAME            = "${env.JOB_NAME}"
+        CHART_PATH          = "helm"
+        NAMESPACE           = "shiftone-internal"
+        REGISTRY_REPO       = "${env.GIT_URL}.git"
     }
 
-    agent {
-        dockerContainer {
-            image "node:${params.NODE_VERSION}" // Use a Docker image that matches the specified Node.js version
-        }
-    }
-    
-    environment {
-        ENV = 'dev'
-        APP_NAME = 'my-react-app'
-        BUILD_DIR = 'build'
-        DEPLOY_DIR = "/path/${ENV}/mfa/apps/${APP_NAME}"
-    }
-    
     stages {
-        stage('Prepare') {
-            steps {
-                echo 'Preparing build environment...'
-                sh 'node --version'
-                sh 'npm --version'
+        stage('build') {
+            agent {
+                kubernetes {
+                    // 공통 라이브러리에서 Pod 템플릿 가져오기
+                    yaml """
+                    apiVersion: v1
+                    kind: Pod
+                    spec:
+                    containers:
+                    - name: kaniko
+                        image: gcr.io/kaniko-project/executor:debug
+                        imagePullPolicy: Always
+                        tty: true
+                    """
+                }
             }
-        }
-        
-        stage('Build') {
             steps {
-                echo 'Building React app...'
-                sh 'npm ci'
-                sh 'npm run build'
+                container('kaniko') {
+                    // 빌드 수행
+                    builds.kaniko()
+                }
             }
-        }
-        
-        stage('Deploy to MFA') {
-            steps {
-                echo 'Deploying to MFA structure...'
-                sh "mkdir -p ${DEPLOY_DIR}"
-                sh "cp -R ${BUILD_DIR}/* ${DEPLOY_DIR}"
-            }
-        }
-        
-        // stage('Cleanup') {
-        //     steps {
-        //         echo 'Cleaning up...'
-        //         sh "rm -rf ${BUILD_DIR}"
-        //     }
-        // }
-    }
-    
-    post {
-        success {
-            echo 'Build and deployment successful!'
-        }
-        failure {
-            echo 'Build or deployment failed.'
         }
     }
 }
