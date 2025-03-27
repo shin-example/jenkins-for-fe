@@ -1,7 +1,5 @@
 @Library('shared-lib-for-test') _
 
-def builds = new buildScript()
-
 pipeline {
     agent none
 
@@ -48,8 +46,10 @@ pipeline {
             }
             steps {
                 container('kaniko') {
-                    // 빌드 수행
-                    builds.kaniko()
+                    script {
+                        def builds = new BuildScript()
+                        builds.kaniko()
+                    }
                 }
             }
         }
